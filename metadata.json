@@ -1,0 +1,5 @@
+{
+  "name": "AdStudio Pro",
+  "description": "Painel de espionagem e remodelagem de criativos para marketing digital baseado na metodologia Imersão 3.",
+  "requestFramePermissions": ["microphone", "camera"]
+}

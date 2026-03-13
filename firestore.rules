@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper Functions
+    function isAuthenticated() { return request.auth != null; }
+    function isAdmin() { return isAuthenticated() && request.auth.token.email == "fabiokaua@gmail.com"; }
+    
+    // Domain Validators
+    function isValidDecision(data) {
+      return data.topic is string && data.topic.size() > 0 && data.topic.size() < 100 &&
+             data.demandScore is number && data.demandScore >= 0 && data.demandScore <= 10 &&
+             data.decision in ['create', 'optimize'] &&
+             data.timestamp is string;
+    }
+
+    match /agent_history/{decisionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidDecision(request.resource.data);
+      allow update: if false; // Immutable history
+      allow delete: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "entities": {
+    "AgentDecision": {
+      "title": "AgentDecision",
+      "description": "Historical record of an AI agent's decision.",
+      "type": "object",
+      "properties": {
+        "topic": { "type": "string", "description": "The topic of the e-book." },
+        "demandScore": { "type": "number", "description": "Market demand score." },
+        "decision": { "type": "string", "description": "Decision: 'create' or 'optimize'." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Time of decision." }
+      },
+      "required": ["topic", "demandScore", "decision", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/agent_history/{decisionId}": {
+      "schema": { "$ref": "AgentDecision" },
+      "description": "Collection of agent decisions."
+    }
+  }
+}

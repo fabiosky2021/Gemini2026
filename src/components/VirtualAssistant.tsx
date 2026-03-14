@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { MessageSquare, Send, X, Brain, Trash2, Download, Upload, Settings } from 'lucide-react';
+import { MessageSquare, Send, X, Brain, Trash2, Download, Upload, Settings, Volume2, VolumeX, Mic, MicOff } from 'lucide-react';
 import { callOpenRouter } from '../services/openRouterService';
 import { memoryService } from '../services/memoryService';
 
@@ -9,6 +9,30 @@ interface Message {
   content: string;
   timestamp: number;
 }
+
+// Função para obter voz masculina em português
+const getMaleVoice = (): SpeechSynthesisVoice | null => {
+  const voices = speechSynthesis.getVoices();
+  
+  // Prioridade: vozes masculinas em português
+  const malePortugueseVoices = voices.filter(v => 
+    (v.lang.includes('pt') || v.lang.includes('PT')) && 
+    (v.name.toLowerCase().includes('male') || 
+     v.name.toLowerCase().includes('daniel') ||
+     v.name.toLowerCase().includes('ricardo') ||
+     v.name.toLowerCase().includes('luciano') ||
+     v.name.toLowerCase().includes('google') && !v.name.toLowerCase().includes('female'))
+  );
+  
+  if (malePortugueseVoices.length > 0) return malePortugueseVoices[0];
+  
+  // Fallback: qualquer voz em português
+  const portugueseVoices = voices.filter(v => v.lang.includes('pt') || v.lang.includes('PT'));
+  if (portugueseVoices.length > 0) return portugueseVoices[0];
+  
+  // Último fallback: primeira voz disponível
+  return voices[0] || null;
+};
 
 const SYSTEM_PROMPT = `Você é um assistente virtual inteligente do AdStudio Pro, uma plataforma de criação de anúncios e conteúdo.
 
@@ -29,8 +53,12 @@ export default function VirtualAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [memoryStats, setMemoryStats] = useState(memoryService.getStats());
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [isListening, setIsListening] = useState(false);
+  const [maleVoice, setMaleVoice] = useState<SpeechSynthesisVoice | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,6 +67,76 @@ export default function VirtualAssistant() {
   useEffect(() => {
     setMemoryStats(memoryService.getStats());
   }, [messages]);
+
+  // Inicializa vozes quando disponíveis
+  useEffect(() => {
+    const loadVoices = () => {
+      const voice = getMaleVoice();
+      setMaleVoice(voice);
+    };
+    
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
+    
+    return () => {
+      speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
+
+  // Inicializa reconhecimento de voz
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'pt-BR';
+      
+      recognitionRef.current.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        setIsListening(false);
+      };
+      
+      recognitionRef.current.onerror = () => {
+        setIsListening(false);
+      };
+      
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  // Função para falar texto com voz masculina
+  const speak = useCallback((text: string) => {
+    if (!voiceEnabled || !text) return;
+    
+    speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'pt-BR';
+    utterance.rate = 1.0;
+    utterance.pitch = 0.85; // Tom mais grave para voz masculina
+    utterance.volume = 1.0;
+    
+    if (maleVoice) {
+      utterance.voice = maleVoice;
+    }
+    
+    speechSynthesis.speak(utterance);
+  }, [voiceEnabled, maleVoice]);
+
+  // Função para alternar microfone
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current?.start();
+      setIsListening(true);
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -77,6 +175,9 @@ export default function VirtualAssistant() {
       };
       
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Fala a resposta com voz masculina
+      speak(response);
       
       // Adiciona resposta à memória
       memoryService.addMemory(`Assistente: ${response.substring(0, 200)}...`, 'conversation');
@@ -171,6 +272,13 @@ export default function VirtualAssistant() {
             </div>
             <div className="flex items-center gap-2">
               <button 
+                onClick={() => setVoiceEnabled(!voiceEnabled)} 
+                className={`p-1 hover:bg-white/10 rounded ${voiceEnabled ? 'text-green-400' : 'text-gray-400'}`}
+                title={voiceEnabled ? 'Desativar voz' : 'Ativar voz'}
+              >
+                {voiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              </button>
+              <button 
                 onClick={() => setShowSettings(!showSettings)} 
                 className="p-1 hover:bg-white/10 rounded"
                 title="Configurações"
@@ -260,13 +368,24 @@ export default function VirtualAssistant() {
           {/* Input */}
           <div className="p-3 border-t border-black/10 dark:border-white/10">
             <div className="flex gap-2 items-end">
+              <button
+                onClick={toggleListening}
+                className={`p-3 rounded-xl transition-colors ${
+                  isListening 
+                    ? 'bg-red-500 text-white animate-pulse' 
+                    : 'bg-gray-200 dark:bg-[#252525] text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-[#303030]'
+                }`}
+                title={isListening ? 'Parar gravação' : 'Falar'}
+              >
+                {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+              </button>
               <textarea 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 rows={1}
                 className="flex-1 bg-gray-100 dark:bg-[#252525] border-none text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-xl p-3 resize-none max-h-24"
-                placeholder="Digite sua mensagem..."
+                placeholder={isListening ? 'Ouvindo...' : 'Digite ou fale sua mensagem...'}
               />
               <button 
                 onClick={handleSend}
@@ -276,6 +395,11 @@ export default function VirtualAssistant() {
                 <Send size={18} />
               </button>
             </div>
+            {voiceEnabled && maleVoice && (
+              <p className="text-xs text-gray-400 mt-2 text-center">
+                Voz: {maleVoice.name} (Masculina)
+              </p>
+            )}
           </div>
         </motion.div>
       )}

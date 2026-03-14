@@ -1,10 +1,15 @@
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || "";
+
 export async function callOpenRouter(messages: any[], model: string = "openai/gpt-4o") {
-  const response = await fetch("/api/openrouter", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
+      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
       "Content-Type": "application/json",
+      "HTTP-Referer": window.location.origin,
+      "X-Title": "AdStudio Pro",
     },
-    body: JSON.stringify({ messages, model }),
+    body: JSON.stringify({ model, messages }),
   });
   
   if (!response.ok) {
@@ -17,9 +22,9 @@ export async function callOpenRouter(messages: any[], model: string = "openai/gp
 
 export async function generateEbookContent(topic: string, type: 'title' | 'outline' | 'script') {
   const prompts = {
-    title: `Create a catchy title for an ebook about: ${topic}`,
-    outline: `Create a detailed outline for an ebook about: ${topic}`,
-    script: `Write the full content for an ebook about: ${topic}`
+    title: `Create a catchy title for an ebook about: ${topic}. Return only the title, nothing else.`,
+    outline: `Create a detailed outline with chapters for an ebook about: ${topic}. Format as a numbered list.`,
+    script: `Write the full content for an ebook about: ${topic}. Include introduction, chapters, and conclusion.`
   };
   
   return await callOpenRouter([{ role: 'user', content: prompts[type] }]);

@@ -365,41 +365,56 @@ export default function VirtualAssistant() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
-          <div className="p-3 border-t border-black/10 dark:border-white/10">
-            <div className="flex gap-2 items-end">
-              <button
-                onClick={toggleListening}
-                className={`p-3 rounded-xl transition-colors ${
-                  isListening 
-                    ? 'bg-red-500 text-white animate-pulse' 
-                    : 'bg-gray-200 dark:bg-[#252525] text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-[#303030]'
-                }`}
-                title={isListening ? 'Parar gravação' : 'Falar'}
-              >
-                {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-              </button>
-              <textarea 
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                rows={1}
-                className="flex-1 bg-gray-100 dark:bg-[#252525] border-none text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-xl p-3 resize-none max-h-24"
-                placeholder={isListening ? 'Ouvindo...' : 'Digite ou fale sua mensagem...'}
-              />
-              <button 
-                onClick={handleSend}
-                disabled={isLoading || !input.trim()}
-                className="bg-blue-500 text-white p-3 rounded-xl hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Send size={18} />
-              </button>
+          {/* Input - Otimizado para digitação e voz */}
+          <div className="p-3 border-t border-black/10 dark:border-white/10 bg-gray-50 dark:bg-[#1A1A1A]">
+            <div className="flex gap-2 items-center">
+              <div className="flex-1 relative">
+                <input 
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-full px-4 py-3 pr-24"
+                  placeholder={isListening ? 'Ouvindo... fale agora' : 'Digite sua mensagem...'}
+                  disabled={isLoading}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <button
+                    onClick={toggleListening}
+                    className={`p-2 rounded-full transition-all ${
+                      isListening 
+                        ? 'bg-red-500 text-white animate-pulse scale-110' 
+                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                    title={isListening ? 'Parar' : 'Falar'}
+                  >
+                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  </button>
+                  <button 
+                    onClick={handleSend}
+                    disabled={isLoading || !input.trim()}
+                    className="bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Send size={18} />
+                  </button>
+                </div>
+              </div>
             </div>
-            {voiceEnabled && maleVoice && (
-              <p className="text-xs text-gray-400 mt-2 text-center">
-                Voz: {maleVoice.name} (Masculina)
-              </p>
-            )}
+            <div className="flex items-center justify-between mt-2 px-1">
+              <span className="text-xs text-gray-400">
+                {isListening ? 'Gravando...' : 'Enter para enviar'}
+              </span>
+              {voiceEnabled && (
+                <span className="text-xs text-green-500 flex items-center gap-1">
+                  <Volume2 size={10} /> Voz ativa
+                </span>
+              )}
+            </div>
           </div>
         </motion.div>
       )}

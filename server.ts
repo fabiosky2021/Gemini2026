@@ -9,7 +9,7 @@ dotenv.config();
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = parseInt(process.env.PORT || "3000", 10);
 
   app.use(cors());
   app.use(express.json());
@@ -111,8 +111,20 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+  });
+
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`Port ${PORT} is already in use. Trying port ${PORT + 1}...`);
+      app.listen(PORT + 1, "0.0.0.0", () => {
+        console.log(`Server running on http://localhost:${PORT + 1}`);
+      });
+    } else {
+      console.error("Server error:", err);
+      process.exit(1);
+    }
   });
 }
 

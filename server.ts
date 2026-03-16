@@ -1,108 +1,143 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
+import http from "http";
+import { Server } from "socket.io";
 import path from "path";
 import dotenv from "dotenv";
-import cors from "cors";
-import { URLSearchParams } from "url";
+import fs from 'fs';
+import { TTS_CONFIG } from './src/constants/ttsConfig';
 
 dotenv.config();
 
+const BACKUP_DIR = path.join(process.cwd(), 'backups_💼');
+
+function performBackup() {
+  try {
+    if (!fs.existsSync(BACKUP_DIR)) {
+      fs.mkdirSync(BACKUP_DIR);
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupPath = path.join(BACKUP_DIR, `backup-${timestamp}`);
+    fs.mkdirSync(backupPath);
+
+    // Copy src and package.json
+    const filesToBackup = ['src', 'package.json', 'server.ts'];
+    filesToBackup.forEach(file => {
+      const source = path.join(process.cwd(), file);
+      const dest = path.join(backupPath, file);
+      if (fs.existsSync(source)) {
+        if (fs.lstatSync(source).isDirectory()) {
+          fs.cpSync(source, dest, { recursive: true });
+        } else {
+          fs.copyFileSync(source, dest);
+        }
+      }
+    });
+    console.log(`Backup realizado com sucesso: ${backupPath}`);
+  } catch (error) {
+    console.error("Erro ao realizar backup:", error);
+  }
+}
+
 async function startServer() {
+  console.log("Iniciando servidor...");
+  // Backup inicial
+  performBackup();
+  // Backup a cada hora
+  setInterval(performBackup, 60 * 60 * 1000);
   const app = express();
+  const httpServer = http.createServer(app);
+  const io = new Server(httpServer, {
+    cors: { origin: "*" }
+  });
   const PORT = 3000;
 
-  app.use(cors());
+  io.on("connection", (socket) => {
+    console.log("Usuário conectado:", socket.id);
+    socket.on("disconnect", () => console.log("Usuário desconectado:", socket.id));
+  });
+
   app.use(express.json());
 
-  // API routes
-  app.get("/api/facebook/auth-url", (req, res) => {
-    const redirectUri = `${process.env.APP_URL || "http://localhost:3000"}/auth/facebook/callback`;
-    const params = new URLSearchParams({
-      client_id: process.env.FACEBOOK_APP_ID || "",
-      redirect_uri: redirectUri,
-      scope: "ads_read,ads_management",
-      response_type: "code",
-    });
-    res.json({ url: `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}` });
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", time: new Date().toISOString() });
   });
 
-  app.get("/auth/facebook/callback", async (req, res) => {
-    const { code } = req.query;
-    // Aqui você trocaria o código por um token de acesso real
-    // const response = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${process.env.FACEBOOK_APP_ID}&redirect_uri=${...}&client_secret=${process.env.FACEBOOK_APP_SECRET}&code=${code}`);
-    
-    res.send(`
-      <html>
-        <body>
-          <script>
-            if (window.opener) {
-              window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
-              window.close();
-            } else {
-              window.location.href = '/';
-            }
-          </script>
-          <p>Autenticação do Facebook bem-sucedida. Esta janela será fechada.</p>
-        </body>
-      </html>
-    `);
+  app.get("/api/books", (req, res) => {
+    res.json([
+      { id: '1', title: 'Dominando o React', author: 'Autor A' },
+      { id: '2', title: 'IA para Criativos', author: 'Autor B' }
+    ]);
   });
 
-  app.post("/api/openrouter-image", async (req, res) => {
-    const { prompt } = req.body;
-    try {
-      const response = await fetch("https://openrouter.ai/api/v1/generation", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": process.env.APP_URL || "http://localhost:3000",
-          "X-Title": "AdStudio Pro",
-        },
-        body: JSON.stringify({
-          model: "openai/dall-e-3", // Ou outro modelo de imagem suportado
-          prompt: prompt,
-        }),
-      });
-      const data = await response.json();
-      res.json(data);
-    } catch (error) {
-      console.error("OpenRouter image error:", error);
-      res.status(500).json({ error: "Failed to call OpenRouter" });
-    }
+  app.get("/api/clients", (req, res) => {
+    res.json([
+      { id: '1', name: 'Cliente A', email: 'clienteA@example.com' },
+      { id: '2', name: 'Cliente B', email: 'clienteB@example.com' }
+    ]);
   });
 
   app.post("/api/openrouter", async (req, res) => {
-    const { messages, model } = req.body;
     try {
+      const { messages, model } = req.body;
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": process.env.APP_URL || "http://localhost:3000",
-          "X-Title": "AdStudio Pro",
+          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
         },
-        body: JSON.stringify({
-          model: model || "openai/gpt-4o",
-          messages,
-        }),
+        body: JSON.stringify({ messages, model }),
       });
       const data = await response.json();
       res.json(data);
     } catch (error) {
-      console.error("OpenRouter error:", error);
       res.status(500).json({ error: "Failed to call OpenRouter" });
     }
   });
+  app.post("/api/tts", async (req, res) => {
+    try {
+      const { text } = req.body;
+      const voiceId = TTS_CONFIG.elevenlabs_agent_voice.voice.voice_id;
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "xi-api-key": process.env.ELEVENLABS_API_KEY!,
+        },
+        body: JSON.stringify({
+          text,
+          model_id: TTS_CONFIG.elevenlabs_agent_voice.model_id,
+          voice_settings: {
+            stability: TTS_CONFIG.elevenlabs_agent_voice.voice_settings.stability,
+            similarity_boost: TTS_CONFIG.elevenlabs_agent_voice.voice_settings.similarity_boost,
+            style: TTS_CONFIG.elevenlabs_agent_voice.voice_settings.style,
+            use_speaker_boost: TTS_CONFIG.elevenlabs_agent_voice.voice_settings.use_speaker_boost,
+          },
+        }),
+      });
+      
+      if (!response.ok) throw new Error("ElevenLabs API error");
+      
+      const audioBuffer = await response.arrayBuffer();
+      res.set('Content-Type', 'audio/mpeg');
+      res.send(Buffer.from(audioBuffer));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to call ElevenLabs" });
+    }
+  });
 
-  // Vite middleware for development
+  // Vite middleware
   if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
+    try {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+      console.log("Vite middleware configurado.");
+    } catch (e) {
+      console.error("Erro ao configurar Vite middleware:", e);
+    }
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
@@ -111,9 +146,10 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
+  console.log("Servidor configurado e ouvindo na porta", PORT);
 }
 
 startServer();

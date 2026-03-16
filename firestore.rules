@@ -19,5 +19,13 @@ service cloud.firestore {
       allow update: if false; // Immutable history
       allow delete: if isAdmin();
     }
+
+    match /budgets/{budgetId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    match /creatives/{creativeId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
   }
 }

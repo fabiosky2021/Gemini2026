@@ -1,0 +1,22 @@
+{
+  "products": [
+    {
+      "id": "ebook-001",
+      "title": "Marketing Digital 2026",
+      "description": "Guia completo sobre automação e agentes de IA para marketing.",
+      "price": "R$ 97,00",
+      "target_audience": "Empreendedores Digitais",
+      "ad_copy": "Descubra como os agentes de IA estão dominando o mercado em 2026. Automatize tudo!",
+      "creative_info": "Imagem de um robô futurista em um escritório moderno."
+    },
+    {
+      "id": "ebook-002",
+      "title": "Culinária com IA",
+      "description": "Receitas geradas por inteligência artificial para uma dieta balanceada.",
+      "price": "R$ 47,00",
+      "target_audience": "Pessoas que buscam saúde e praticidade",
+      "ad_copy": "Nunca mais perca tempo pensando no que comer. Deixe a IA planejar sua dieta.",
+      "creative_info": "Prato colorido e vibrante com um tablet ao lado mostrando um robô chef."
+    }
+  ]
+}

@@ -1,27 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import { Loader2, Sparkles, Download, Key } from 'lucide-react';
+import { Loader2, Sparkles, Download } from 'lucide-react';
 
 export default function ImageGenerator() {
   const [prompt, setPrompt] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [hasApiKey, setHasApiKey] = useState(false);
-
-  useEffect(() => {
-    const checkApiKey = async () => {
-      // @ts-ignore
-      const selected = await window.aistudio.hasSelectedApiKey();
-      setHasApiKey(selected);
-    };
-    checkApiKey();
-  }, []);
-
-  const handleConnect = async () => {
-    // @ts-ignore
-    await window.aistudio.openSelectKey();
-    setHasApiKey(true);
-  };
 
   const generateImage = async () => {
     if (!prompt) return;
@@ -37,12 +21,14 @@ export default function ImageGenerator() {
         },
       });
 
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          const base64EncodeString = part.inlineData.data;
-          setImage(`data:image/png;base64,${base64EncodeString}`);
-          setLoading(false);
-          return;
+      if (response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+            const base64EncodeString = part.inlineData.data;
+            setImage(`data:image/png;base64,${base64EncodeString}`);
+            setLoading(false);
+            return;
+          }
         }
       }
       throw new Error("No image generated");
@@ -68,21 +54,6 @@ export default function ImageGenerator() {
       setLoading(false);
     }
   };
-
-  if (!hasApiKey) {
-    return (
-      <div className="p-8 bg-white dark:bg-[#141414] rounded-xl shadow-md text-center">
-        <h2 className="text-2xl font-serif italic mb-4">Gerador de Imagens AI</h2>
-        <p className="mb-6">Para gerar imagens, você precisa selecionar uma chave de API paga do Google Cloud.</p>
-        <button
-          onClick={handleConnect}
-          className="px-6 py-3 bg-black text-white dark:bg-white dark:text-black rounded-lg flex items-center gap-2 mx-auto"
-        >
-          <Key size={18} /> Selecionar Chave API
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 bg-white dark:bg-[#141414] rounded-xl shadow-md">

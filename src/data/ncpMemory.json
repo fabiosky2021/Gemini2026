@@ -1,0 +1,17 @@
+{
+  "evolvedPatterns": [],
+  "clickablePreferences": [],
+  "artificialHistory": [],
+  "globalPrompts": [
+    {
+      "id": "ncp-master",
+      "name": "NCP Evolution Prompt",
+      "content": "Aja como um Agente de Evolução de Memória Autônoma. Analise o histórico de conversão e adapte a copy para ressonância máxima."
+    },
+    {
+      "id": "spy-master",
+      "name": "Spy Ads Gemini2026",
+      "content": "Execute varredura profunda em bibliotecas de anúncios. Identifique padrões de 'gancho' e 'promessa' que estão escalando agora."
+    }
+  ]
+}

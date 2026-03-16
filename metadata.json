@@ -1,5 +1,5 @@
 {
-  "name": "AdStudio Pro",
-  "description": "Painel de espionagem e remodelagem de criativos para marketing digital baseado na metodologia Imersão 3.",
+  "name": "Gemini2026 Agent Studio",
+  "description": "Autonomous AI agent for content creation and self-correcting development assistance.",
   "requestFramePermissions": ["microphone", "camera"]
 }

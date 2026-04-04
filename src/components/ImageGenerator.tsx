@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { Loader2, Sparkles, Download } from 'lucide-react';
+import { generateContentWithRetry } from "../utils/geminiRetry";
 
 export default function ImageGenerator() {
   const [prompt, setPrompt] = useState('');
@@ -14,7 +15,7 @@ export default function ImageGenerator() {
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
+      const response = await generateContentWithRetry(ai, {
         model: 'gemini-2.5-flash-image',
         contents: {
           parts: [{ text: prompt }],

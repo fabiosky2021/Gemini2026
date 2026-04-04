@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { generateContentWithRetry } from "../utils/geminiRetry";
 import localKnowledge from '../data/localKnowledge.json';
 
 // Using free-tier model for efficiency
@@ -8,7 +9,7 @@ export async function runAutonomousTask(task: string, context: any) {
   console.log(`Running autonomous task: ${task}`);
   
   try {
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithRetry(ai, {
       model: "gemini-3-flash-preview",
       contents: `Task: ${task}\nContext: ${JSON.stringify(context)}\nProvide a JSON response with the result.`,
       config: {

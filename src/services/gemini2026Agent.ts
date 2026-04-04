@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { withRetry, generateContentWithRetry } from "../utils/geminiRetry";
 import localKnowledge from '../data/localKnowledge.json';
 import ncpMemory from '../data/ncpMemory.json';
 
@@ -18,7 +19,7 @@ const Gemini2026 = {
 
     try {
       if (toolName === 'generateVideoPreview') {
-        const response = await ai.models.generateVideos({
+        const response = await withRetry(() => ai.models.generateVideos({
           model: 'veo-3.1-fast-generate-preview',
           prompt: `Cinematic high-quality video preview for an ebook titled "${topic}". 
           Show a professional book cover, pages turning, and dynamic text overlays with the promise: ${context?.promise || 'Transform your life'}. 
@@ -28,12 +29,12 @@ const Gemini2026 = {
             resolution: '720p',
             aspectRatio: '16:9'
           }
-        });
+        }));
         return response;
       }
 
       if (toolName === 'theCloser') {
-        const response = await ai.models.generateContent({
+        const response = await generateContentWithRetry(ai, {
           model: modelName,
           contents: [{ parts: [{ text: `Aja como 'O Fechador'. Sua missão é pegar a promessa: "${topic}" e transformá-la em uma oferta IRRECUSÁVEL.
           1. Use gatilhos de urgência e escassez.
@@ -44,7 +45,7 @@ const Gemini2026 = {
       }
 
       if (toolName === 'growthHacker') {
-        const response = await ai.models.generateContent({
+        const response = await generateContentWithRetry(ai, {
           model: modelName,
           contents: [{ parts: [{ text: `Aja como um Growth Hacker Infinito. Analise o nicho ${topic} e encontre 5 'Brechas de Lucro' que ninguém está explorando.
           Foque em tráfego barato e alta conversão.` }] }],
@@ -53,7 +54,7 @@ const Gemini2026 = {
       }
 
       if (toolName === 'spyGeneral') {
-        const response = await ai.models.generateContent({
+        const response = await generateContentWithRetry(ai, {
           model: modelName,
           contents: [{ parts: [{ text: `MISSÃO SPY GERAL: Analise profundamente o nicho ${topic}. 
           1. Identifique as 3 promessas de anúncios mais clicáveis atualmente.
@@ -68,7 +69,7 @@ const Gemini2026 = {
       }
 
       if (toolName === 'spyAds') {
-        const response = await ai.models.generateContent({
+        const response = await generateContentWithRetry(ai, {
           model: modelName,
           contents: [{ parts: [{ text: `Pesquise anúncios reais, concorrentes e estratégias de tráfego para o nicho: ${topic}. 
           Retorne uma lista de URLs de concorrentes, exemplos de copy de anúncios e links úteis.
@@ -84,7 +85,7 @@ const Gemini2026 = {
       }
 
       if (toolName === 'generateLandingPage') {
-        const response = await ai.models.generateContent({
+        const response = await generateContentWithRetry(ai, {
           model: modelName,
           contents: [{ parts: [{ text: `Crie uma Landing Page de Vendas de alta conversão para um ebook sobre: ${topic}.
           Contexto do Ebook: ${JSON.stringify(context)}
@@ -117,7 +118,7 @@ const Gemini2026 = {
         
         O resultado deve ser um LIVRO PERFEITO pronto para venda.`;
         
-        const response = await ai.models.generateContent({
+        const response = await generateContentWithRetry(ai, {
           model: modelName,
           contents: [{ parts: [{ text: prompt }] }],
         });
@@ -130,7 +131,7 @@ const Gemini2026 = {
 
       if (toolName === 'generateEbook') {
         const generate = async (p: string) => {
-          const res = await ai.models.generateContent({
+          const res = await generateContentWithRetry(ai, {
             model: modelName,
             contents: [{ parts: [{ text: p }] }],
           });
@@ -175,7 +176,7 @@ export async function evaluateEbookContent(ebook: { title: string, outline: stri
   
   Format the response as JSON: { "feedback": "...", "score": number }`;
 
-  const response = await ai.models.generateContent({
+  const response = await generateContentWithRetry(ai, {
     model: "gemini-3-flash-preview",
     contents: prompt,
     config: {

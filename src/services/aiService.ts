@@ -1,9 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
+import { generateContentWithRetry } from "../utils/geminiRetry";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 export async function generateHooks(mechanism: string, referenceAd: string) {
-  const response = await ai.models.generateContent({
+  const response = await generateContentWithRetry(ai, {
     model: "gemini-3.1-pro-preview",
     contents: `Você é o "Rei dos Copywritings". 
     Anúncio de referência: "${referenceAd}"
@@ -15,7 +16,7 @@ export async function generateHooks(mechanism: string, referenceAd: string) {
 }
 
 export async function generateBody(hook: string, mechanism: string, referenceAd: string) {
-  const response = await ai.models.generateContent({
+  const response = await generateContentWithRetry(ai, {
     model: "gemini-3.1-pro-preview",
     contents: `Você é o "Rei dos Copywritings".
     Anúncio de referência: "${referenceAd}"

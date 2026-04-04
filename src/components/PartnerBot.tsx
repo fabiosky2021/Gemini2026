@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { BrainCircuit, Send, X, ExternalLink } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import { generateContentWithRetry } from "../utils/geminiRetry";
 
 const PARTNER_INSTRUCTION = `Você é o "Parceiro Bot", um colega de trabalho autônomo, inteligente e extremamente ágil.
 Sua missão é agilizar o trabalho do usuário, fornecendo soluções diretas, links úteis e ideias práticas.
@@ -32,7 +33,7 @@ export default function PartnerBot() {
     try {
       const context = newMessages.slice(-4).map(m => `${m.role}: ${m.text}`).join('\n');
       
-      const response = await ai.models.generateContent({
+      const response = await generateContentWithRetry(ai, {
         model: "gemini-3.1-pro-preview", 
         contents: context,
         config: { systemInstruction: PARTNER_INSTRUCTION }

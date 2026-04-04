@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { MessageSquare, Send, ExternalLink, X, Zap, Cpu, WifiOff } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import { generateContentWithRetry } from "../utils/geminiRetry";
 import localKnowledge from '../data/localKnowledge.json';
 
 const QUICK_LINKS = [
@@ -53,7 +54,7 @@ export default function VirtualAssistant() {
       
       const model = isEconomyMode ? "gemini-3-flash-preview" : "gemini-3.1-pro-preview";
       
-      const response = await ai.models.generateContent({
+      const response = await generateContentWithRetry(ai, {
         model: model, 
         contents: context,
         config: { systemInstruction: SYSTEM_INSTRUCTION }

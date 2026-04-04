@@ -7,7 +7,8 @@
     "dev": "tsx server.ts",
     "build": "tsc && vite build",
     "lint": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "tsx server.ts"
   },
   "dependencies": {
     "@google/genai": "^1.45.0",
@@ -27,7 +28,8 @@
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "telegraf": "^4.16.3",
-    "whatsapp-web.js": "^1.23.1"
+    "whatsapp-web.js": "^1.23.1",
+    "tsx": "^4.7.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
@@ -39,7 +41,6 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.2.1",
     "tailwindcss": "^4.0.0",
-    "tsx": "^4.7.2",
     "typescript": "^5.4.5",
     "vite": "^5.2.10"
   }
